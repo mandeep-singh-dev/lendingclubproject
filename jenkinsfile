@@ -1,28 +1,43 @@
-pipeline{
+pipeline {
     agent any
 
+    environment {
+        // Define credentials for accessing lab environment
+        LABS = credentials('labcreds')
+    }
+
     stages {
-        stage('Build'){
+        stage('Build') {
             steps {
-                echo "build completed successfully"
+                // Install pipenv
+                sh 'pip3 install --user pipenv'
+
+                // Clean up existing pipenv environment if exists, ignore if it fails
+                sh '/bitnami/jenkins/home/.local/bin/pipenv --rm || exit 0'
+
+                // Install dependencies using pipenv
+                sh '/bitnami/jenkins/home/.local/bin/pipenv install'
             }
         }
         
-        stage('Test'){
+        stage('Test') {
             steps {
-                echo "test completed successfully"
+                // Run pytest using pipenv
+                sh '/bitnami/jenkins/home/.local/bin/pipenv run pytest'
             }
         }
 
-        stage('Package'){
+        stage('Package') {
             steps {
-                echo "package completed successfully"
+                // Create a zip archive of the project
+                sh 'zip -r retailproject.zip .'
             }
         }
 
-        stage('Deploy'){
+        stage('Deploy') {
             steps {
-                echo "deploy completed successfully"
+                // Deploy the project using SSH and SCP
+                sh "sshpass -p $LABS_PSW scp -o StrictHostKeyChecking=no -r . $LABS_USR@g02.itversity.com:/home/itv009524/retailproject"
             }
         }
     }
